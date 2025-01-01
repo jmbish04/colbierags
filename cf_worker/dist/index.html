@@ -1,0 +1,161 @@
+// src/index.html
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RAG Insights Visualization</title>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <style>
+    body { 
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    h1 {
+      color: #2d3748;
+      margin-bottom: 20px;
+    }
+    #visualization {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .node { 
+      stroke: #fff;
+      stroke-width: 1.5px;
+      cursor: pointer;
+    }
+    .node:hover {
+      stroke: #000;
+      stroke-width: 2px;
+    }
+    .link { 
+      stroke: #cbd5e0;
+      stroke-opacity: 0.6;
+    }
+    .tooltip {
+      position: absolute;
+      padding: 8px;
+      background: #2d3748;
+      color: white;
+      border-radius: 4px;
+      font-size: 12px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+  </style>
+</head>
+<body>
+  <h1>RAG Insights Visualization</h1>
+  <div id="visualization"></div>
+  <div class="tooltip"></div>
+
+  <script>
+    // This will be replaced by the Worker
+    // const vectorData = [...];
+
+    // Create visualization
+    function createVisualization(data) {
+      const width = 800;
+      const height = 600;
+      const tooltip = d3.select(".tooltip");
+
+      // Create SVG
+      const svg = d3.select("#visualization")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("viewBox", [0, 0, width, height]);
+
+      // Create zoom behavior
+      const zoom = d3.zoom()
+        .scaleExtent([0.5, 5])
+        .on("zoom", (event) => {
+          g.attr("transform", event.transform);
+        });
+
+      // Add zoom to SVG
+      svg.call(zoom);
+
+      // Create main group for zoom
+      const g = svg.append("g");
+
+      // Force simulation
+      const simulation = d3.forceSimulation(data)
+        .force("charge", d3.forceManyBody().strength(-50))
+        .force("center", d3.forceCenter(width / 2, height / 2))
+        .force("collision", d3.forceCollide().radius(10));
+
+      // Create nodes
+      const node = g.append("g")
+        .selectAll("circle")
+        .data(data)
+        .join("circle")
+        .attr("class", "node")
+        .attr("r", 6)
+        .attr("fill", d => getColor(d))
+        .call(drag(simulation))
+        .on("mouseover", (event, d) => {
+          tooltip.style("opacity", 1)
+            .html(`ID: ${d.id}<br>Type: ${d.metadata?.type || 'Unknown'}`);
+        })
+        .on("mousemove", (event) => {
+          tooltip
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY + 10) + "px");
+        })
+        .on("mouseout", () => {
+          tooltip.style("opacity", 0);
+        });
+
+      // Update positions on simulation tick
+      simulation.on("tick", () => {
+        node
+          .attr("cx", d => d.x)
+          .attr("cy", d => d.y);
+      });
+
+      // Drag behavior
+      function drag(simulation) {
+        function dragstarted(event) {
+          if (!event.active) simulation.alphaTarget(0.3).restart();
+          event.subject.fx = event.subject.x;
+          event.subject.fy = event.subject.y;
+        }
+        
+        function dragged(event) {
+          event.subject.fx = event.x;
+          event.subject.fy = event.y;
+        }
+        
+        function dragended(event) {
+          if (!event.active) simulation.alphaTarget(0);
+          event.subject.fx = null;
+          event.subject.fy = null;
+        }
+        
+        return d3.drag()
+          .on("start", dragstarted)
+          .on("drag", dragged)
+          .on("end", dragended);
+      }
+
+      // Color generation based on metadata
+      function getColor(d) {
+        // You can customize this based on your metadata
+        const colors = d3.schemeCategory10;
+        const type = d.metadata?.type || 'unknown';
+        const hash = type.split('').reduce((acc, char) => {
+          return char.charCodeAt(0) + ((acc << 5) - acc);
+        }, 0);
+        return colors[Math.abs(hash) % colors.length];
+      }
+    }
+
+    // Initialize visualization when data is available
+    createVisualization(vectorData);
+  </script>
+</body>
+</html>

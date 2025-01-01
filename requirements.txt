@@ -1,0 +1,4 @@
+langchain
+langchain-voyageai
+python-dotenv
+google-cloud-storage

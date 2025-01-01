@@ -1,0 +1,18 @@
+name = "langchain-colbie"
+main = "dist/worker.js"  # Make sure this points to the webpack output
+compatibility_date = "2024-12-31"
+account_id = "b3304b14848de15c72c24a14b0cd187d"
+workers_dev = true
+
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "colbie"
+
+[ai]
+binding = "AI"
+
+[build]
+command = "npm run build"
+
+[site]
+bucket = "./public"
